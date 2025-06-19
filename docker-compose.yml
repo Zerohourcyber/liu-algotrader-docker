@@ -17,6 +17,9 @@ services:
     command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
 
   fix-it-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.fixit
     image: liu-fixit-bot:latest
     container_name: liu-fix-it
     restart: "no"
