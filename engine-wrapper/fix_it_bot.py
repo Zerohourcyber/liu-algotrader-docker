@@ -31,8 +31,11 @@ def inject_sections(tp: Path):
         to_add += "\n" + DATA_BLOCK
     else:
         print("🔍 [data] already present.")
-    print("✨ Appending strategy block.")
-    to_add += "\n" + STRAT_BLOCK
+    if "mean_reversion_auto" not in text:
+        print("✨ Appending strategy block.")
+        to_add += "\n" + STRAT_BLOCK
+    else:
+        print("🔍 mean_reversion strategy already present.")
     tp.write_text(text + to_add)
 
 def run_backtest(args):
