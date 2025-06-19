@@ -1,0 +1,6 @@
+streamlit
+sqlalchemy
+pandas
+toml
+psycopg2-binary
+# plus any other libs your dashboard_app.py needs

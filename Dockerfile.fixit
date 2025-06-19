@@ -1,0 +1,9 @@
+# Dockerfile.fixit
+FROM python:3.10-slim
+
+RUN pip install --no-cache-dir liualgotrader
+
+WORKDIR /app
+COPY engine-wrapper/fix_it_bot.py /app/fix_it_bot.py
+
+ENTRYPOINT ["python3", "fix_it_bot.py"]

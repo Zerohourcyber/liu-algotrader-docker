@@ -1,0 +1,258 @@
+# -----------------------------------------------------------------------------
+# Liu Algo Trader backtest configuration (tradeplan.toml)
+# -----------------------------------------------------------------------------
+
+# Which events to listen for (you can trim this if you don’t need quotes/trades)
+events = ["second", "minute", "trade", "quote"]
+
+# -----------------------------------------------------------------------------
+# Portfolio & risk settings
+# -----------------------------------------------------------------------------
+# Total buying power for this run
+portfolio_value = 25000.0
+
+# Fraction of portfolio to risk per trade (e.g. 0.001 = 0.1%)
+risk = 0.001
+
+# How many minutes before market close to force liquidation
+market_liquidation_end_time_minutes = 15
+
+# If true, only scanners will run (no orders)—useful for debugging
+# test_scanners = true
+
+# -----------------------------------------------------------------------------
+# Default symbols (override with --symbols if you like)
+# -----------------------------------------------------------------------------
+symbols = ["AAPL", "MSFT", "GOOG", "NVDA", "TSLA", "META"]
+
+# -----------------------------------------------------------------------------
+# Scanner definitions (array of tables)
+# -----------------------------------------------------------------------------
+[[scanners]]
+name             = "momentum"
+provider         = "alpaca"
+min_volume       = 1        # minimum volume since day open
+min_gap          = 0.0          # minimum % gap from previous close
+min_last_dv      = 0       # minimum last-day dollar volume
+min_share_price  = 0.0          # skip under-$2 stocks
+max_share_price  = 9999.0         # skip over-$20 stocks
+from_market_open = 0           # wait N minutes after open before scanning
+recurrence       = 5            # re-run scanner every N minutes
+
+# -----------------------------------------------------------------------------
+# Strategy definitions (array of tables)
+# -----------------------------------------------------------------------------
+[[strategies]]
+filename = "momentum_long_simplified.py"
+
+# Each strategy can have one or more schedules (array of tables)
+[[strategies.schedule]]
+start    = 15    # minutes after open to begin running this strategy
+duration = 60    # how many minutes to keep running it
+
+
+# ── Auto-injected mean_reversion strategy ─────────────────────────────────
+[[strategies]]
+name   = "mean_reversion_auto"
+module = "liualgotrader.strategies.mean_reversion"
+  [strategies.settings]
+  lookback       = 20
+  threshold      = 1.5
+  allocation_pct = 0.2
+
+[[strategies.schedule]]
+start    = 0
+duration = 390
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+# ── Auto-injected mean_reversion strategy ───────────────────────────────────
+[[strategies]]
+name   = "mean_reversion_auto"
+module = "liualgotrader.strategies.mean_reversion"
+  [strategies.settings]
+  lookback       = 20
+  threshold      = 1.5
+  allocation_pct = 0.2
+
+[[strategies.schedule]]
+start    = 0
+duration = 390
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Auto-injected data source ────────────────────────────────────────────────
+[data]
+source = "alpaca"
+# (set APCA_API_KEY_ID & APCA_API_SECRET as env vars if needed)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+# ── Auto-injected mean_reversion strategy ───────────────────────────────────
+[[strategies]]
+name   = "mean_reversion_auto"
+module = "liualgotrader.strategies.mean_reversion"
+  [strategies.settings]
+  lookback       = 20
+  threshold      = 1.5
+  allocation_pct = 0.2
+
+[[strategies.schedule]]
+start    = 0
+duration = 390
+# ─────────────────────────────────────────────────────────────────────────────
+
+[[strategies]]
+name   = "mean_reversion_auto"
+module = "liualgotrader.strategies.mean_reversion"
+  [strategies.settings]
+  lookback       = 20
+  threshold      = 1.5
+  allocation_pct = 0.2
+
+[[strategies.schedule]]
+start    = 0
+duration = 390
+
+[[strategies]]
+name   = "mean_reversion_auto"
+module = "liualgotrader.strategies.mean_reversion"
+  [strategies.settings]
+  lookback       = 20
+  threshold      = 1.5
+  allocation_pct = 0.2
+
+[[strategies.schedule]]
+start    = 0
+duration = 390
+
+[[strategies]]
+name   = "mean_reversion_auto"
+module = "liualgotrader.strategies.mean_reversion"
+  [strategies.settings]
+  lookback       = 20
+  threshold      = 1.5
+  allocation_pct = 0.2
+
+[[strategies.schedule]]
+start    = 0
+duration = 390
+
+[[strategies]]
+name   = "mean_reversion_auto"
+module = "liualgotrader.strategies.mean_reversion"
+  [strategies.settings]
+  lookback       = 20
+  threshold      = 1.5
+  allocation_pct = 0.2
+
+[[strategies.schedule]]
+start    = 0
+duration = 390
+
+[[strategies]]
+name   = "mean_reversion_auto"
+module = "liualgotrader.strategies.mean_reversion"
+  [strategies.settings]
+  lookback       = 20
+  threshold      = 1.5
+  allocation_pct = 0.2
+
+[[strategies.schedule]]
+start    = 0
+duration = 390
+
+[[strategies]]
+name   = "mean_reversion_auto"
+module = "liualgotrader.strategies.mean_reversion"
+  [strategies.settings]
+  lookback       = 20
+  threshold      = 1.5
+  allocation_pct = 0.2
+
+[[strategies.schedule]]
+start    = 0
+duration = 390
+
+[[strategies]]
+name   = "mean_reversion_auto"
+module = "liualgotrader.strategies.mean_reversion"
+  [strategies.settings]
+  lookback       = 20
+  threshold      = 1.5
+  allocation_pct = 0.2
+
+[[strategies.schedule]]
+start    = 0
+duration = 390
+
+[[strategies]]
+name   = "mean_reversion_auto"
+module = "liualgotrader.strategies.mean_reversion"
+  [strategies.settings]
+  lookback       = 20
+  threshold      = 1.5
+  allocation_pct = 0.2
+
+[[strategies.schedule]]
+start    = 0
+duration = 390
+
+[[strategies]]
+name   = "mean_reversion_auto"
+module = "liualgotrader.strategies.mean_reversion"
+  [strategies.settings]
+  lookback       = 20
+  threshold      = 1.5
+  allocation_pct = 0.2
+
+[[strategies.schedule]]
+start    = 0
+duration = 390
+
+[[strategies]]
+name   = "mean_reversion_auto"
+module = "liualgotrader.strategies.mean_reversion"
+  [strategies.settings]
+  lookback       = 20
+  threshold      = 1.5
+  allocation_pct = 0.2
+
+[[strategies.schedule]]
+start    = 0
+duration = 390
+
+[[strategies]]
+name   = "mean_reversion_auto"
+module = "liualgotrader.strategies.mean_reversion"
+  [strategies.settings]
+  lookback       = 20
+  threshold      = 1.5
+  allocation_pct = 0.2
+
+[[strategies.schedule]]
+start    = 0
+duration = 390
+
+[[strategies]]
+name   = "mean_reversion_auto"
+module = "liualgotrader.strategies.mean_reversion"
+  [strategies.settings]
+  lookback       = 20
+  threshold      = 1.5
+  allocation_pct = 0.2
+
+[[strategies.schedule]]
+start    = 0
+duration = 390
+
+[[strategies]]
+name   = "mean_reversion_auto"
+module = "liualgotrader.strategies.mean_reversion"
+  [strategies.settings]
+  lookback       = 20
+  threshold      = 1.5
+  allocation_pct = 0.2
+
+[[strategies.schedule]]
+start    = 0
+duration = 390
