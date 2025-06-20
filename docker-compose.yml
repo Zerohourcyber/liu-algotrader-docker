@@ -91,8 +91,8 @@ services:
       - "--log-level"
       - "INFO"
     environment:
-      APCA_API_KEY_ID:     PKKI5R2IQ2O9ACP4WUUI
-      APCA_API_SECRET_KEY: zzPeKqQRb5hmybwyOXREi0ZVtBUZRbC9eYaigasy
+      APCA_API_KEY_ID:     
+      APCA_API_SECRET_KEY: 
       APCA_API_BASE_URL:   https://paper-api.alpaca.markets/v2
       ALPACA_STREAM_URL:   wss://stream.data.alpaca.markets/v2/sip
       ALPACA_DATA_FEED:    iex
