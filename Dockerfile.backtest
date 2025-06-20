@@ -1,0 +1,22 @@
+# build/Dockerfile.backtest
+FROM python:3.10-slim
+
+# Add required system packages (needed for psycopg2 and others)
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends build-essential libpq-dev \
+ && rm -rf /var/lib/apt/lists/*
+
+# Install LiuAlgoTrader from PyPI
+RUN pip install --no-cache-dir liualgotrader
+
+# This is where our files will live
+WORKDIR /app
+
+# ⬇️ Copy your backtest code into the container (adjust path as needed)
+COPY engine-wrapper/ engine-wrapper/
+
+# Set PYTHONPATH so modules in engine-wrapper can be found
+ENV PYTHONPATH=/app/engine-wrapper
+
+# Run the backtest module when container starts
+ENTRYPOINT ["python", "-m", "liualgotrader.enhanced_backtest"]

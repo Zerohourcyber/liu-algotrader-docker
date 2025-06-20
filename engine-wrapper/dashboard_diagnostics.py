@@ -38,6 +38,7 @@ def get_engine(dsn: str):
 def collect_diagnostics(env: dict):
     issues = []
     batches = []
+    backtests = []
 
     # 2.1) DSN check
     dsn = env["DSN"]
@@ -63,45 +64,7 @@ def collect_diagnostics(env: dict):
             issues.append(f"TRADEPLAN_DIR does not exist: {tp}")
         elif not tp_toml.exists():
             issues.append(f"tradeplan.toml not found in {tp}")
-        else:
-            try:
-                toml.load(tp_toml)
-            except Exception as e:
-                issues.append(f"Error parsing tradeplan.toml: {e}")
-
-    # 2.3) enhanced_backtest import check
-    try:
-        importlib.import_module("liualgotrader.enhanced_backtest")
-    except Exception as e:
-        issues.append(f"Could not import enhanced_backtest: {e}")
-
-    # 2.4) DB tables + batch/trade counts
-    if engine:
-        insp = inspect(engine)
-        # ensure required tables exist
-        for tbl in ("algo_run", "trades"):
-            if not insp.has_table(tbl):
-                issues.append(f"Missing table: {tbl}")
-
-        if insp.has_table("algo_run") and insp.has_table("trades"):
-            # fetch latest 10 batches
-            runs_df = pd.read_sql(
-                """
-                SELECT
-                  batch_id,
-                  COUNT(*) AS run_count
-                FROM algo_run
-                GROUP BY batch_id
-                ORDER BY MAX(start_time) DESC
-                LIMIT 10
-                """,
-                engine,
-            )
-            for row in runs_df.itertuples(index=False):
-                bid = row.batch_id
-                rc  = int(row.run_count)
-
-                # count associated trades
+@@ -105,77 +106,109 @@ def collect_diagnostics(env: dict):
                 tc = engine.execute(
                     text(
                         """
@@ -127,10 +90,33 @@ def collect_diagnostics(env: dict):
                 if tc == 0:
                     issues.append(f"No trades found for batch_id '{bid}'")
 
+        # optional backtests table
+        if insp.has_table("backtests"):
+            try:
+                bt_df = pd.read_sql(
+                    """
+                    SELECT batch_id,
+                           run_at,
+                           symbols,
+                           win_rate,
+                           net_profit
+                      FROM backtests
+                     ORDER BY run_at DESC
+                     LIMIT 5
+                    """,
+                    engine,
+                )
+                backtests = bt_df.to_dict("records")
+            except Exception as e:
+                issues.append(f"Error reading backtests: {e}")
+        else:
+            issues.append("Missing table: backtests")
+
     return {
         "env":       env,
         "issues":    issues,
         "batches":   batches,
+        "backtests": backtests,
         "timestamp": datetime.utcnow().isoformat(),
     }
 
@@ -153,6 +139,15 @@ if st.session_state.health_check:
             st.error(f"{i}. {issue}")
     else:
         st.success("No issues detected! 🎉")
+
+    st.subheader("📝 Recent Backtests")
+    if diag.get("backtests"):
+        st.dataframe(
+            pd.DataFrame(diag["backtests"]),
+            use_container_width=True
+        )
+    else:
+        st.info("No backtests found (or table is missing).")
 
     # write out diagnostics.json
     out_path = Path(__file__).parent / "diagnostics.json"
@@ -179,49 +174,3 @@ st.sidebar.header("⚡ Run Backtest")
 default_tp = Path(env.get("TRADEPLAN_DIR", ".")) / "tradeplan.toml"
 
 with st.sidebar.form("run_backtest", clear_on_submit=False):
-    tp_input    = st.text_input("Tradeplan TOML",       value=str(default_tp))
-    syms_input  = st.text_input("Symbols (comma-separated)", "AAPL,MSFT,GOOG")
-    start_dt    = st.date_input("Start Date",           value=datetime.today())
-    end_dt      = st.date_input("End Date",             value=datetime.today())
-    batch_input = st.text_input(
-                     "Batch ID",
-                     value=f"run-{datetime.now():%Y%m%d-%H%M%S}"
-                   )
-    run_bt      = st.form_submit_button("▶️ Run Backtest")
-
-if run_bt:
-    cmd = [
-        "python", "-m", "liualgotrader.enhanced_backtest",
-        "--tradeplan", tp_input,
-        "--symbols",    syms_input,
-        "--start-date", start_dt.strftime("%Y-%m-%d"),
-        "--end-date",   end_dt.strftime("%Y-%m-%d"),
-        "--batch-id",   batch_input,
-    ]
-    st.info("Running backtest… this may take a minute.")
-    st.code(" ".join(cmd), language="bash")
-
-    try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            env=os.environ,
-            cwd=str(Path(tp_input).parent),
-        )
-        st.subheader("📟 Backtest Output")
-        st.text_area(
-            "STDOUT & STDERR",
-            value=result.stdout + "\n\n" + result.stderr,
-            height=300,
-        )
-        if result.returncode == 0:
-            st.success("Backtest completed successfully! ✅")
-        else:
-            st.error(f"Backtest exited with code {result.returncode}")
-    except Exception as e:
-        st.exception(f"Error launching backtest: {e}")
-
-    st.warning(
-        "Once backtest finishes, click **Run Health Check** to re-validate your tables."
-    )

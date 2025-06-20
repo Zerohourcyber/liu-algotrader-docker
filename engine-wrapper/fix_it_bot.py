@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-import os, sys, subprocess, json, textwrap, argparse
+import os
+import sys
+import subprocess
+import json
+import textwrap
+import argparse
 from pathlib import Path
 from datetime import datetime
 
@@ -39,16 +44,18 @@ def inject_sections(tp: Path):
     tp.write_text(text + to_add)
 
 def run_backtest(args):
-    os.environ["TLOG_LEVEL"] = "DEBUG"
+    # set TLOG_LEVEL from user flag
+    os.environ["TLOG_LEVEL"] = args.log_level
+
     cmd = [
         "python3", "-m", "liualgotrader.enhanced_backtest",
         "--tradeplan",   args.tradeplan,
         "--symbols",     args.symbols,
         "--start-date",  args.start_date,
         "--end-date",    args.end_date,
-        "--batch-id",    f"auto-{datetime.now():%Y%m%d-%H%M%S}",
+        "--batch-id",    args.batch_id,
         "--diagnostics", args.diagnostics,
-        "--log-level",   "DEBUG"
+        "--log-level",   args.log_level
     ]
     print("🚀 Running:", " ".join(cmd))
     return subprocess.run(cmd, capture_output=True, text=True)
@@ -57,11 +64,32 @@ def main():
     p = argparse.ArgumentParser(
         description="Fix-it-bot: inject data+strategy and run backtest"
     )
-    p.add_argument("--symbols",     required=True)
-    p.add_argument("--start-date",  required=True)
-    p.add_argument("--end-date",    required=True)
-    p.add_argument("--tradeplan",   default="liu_samples/tradeplan.toml")
-    p.add_argument("--diagnostics", default="liu_samples/diagnostics.json")
+    p.add_argument("--symbols",     required=True,
+                   help="Comma-separated list of tickers")
+    p.add_argument("--start-date",  required=True,
+                   help="YYYY-MM-DD")
+    p.add_argument("--end-date",    required=True,
+                   help="YYYY-MM-DD")
+    p.add_argument("--tradeplan",   default="liu_samples/tradeplan.toml",
+                   help="Path to your tradeplan.toml")
+    p.add_argument("--diagnostics", default="liu_samples/diagnostics.json",
+                   help="Where to write diagnostics.json")
+
+    # ← newly added flags:
+    p.add_argument(
+        "--batch-id",
+        required=False,
+        default=f"auto-{datetime.now():%Y%m%d-%H%M%S}",
+        help="Batch ID for summary insert"
+    )
+    p.add_argument(
+        "--log-level",
+        required=False,
+        default="DEBUG",
+        choices=["DEBUG","INFO","WARNING","ERROR","CRITICAL"],
+        help="Logging level (and TLOG_LEVEL envvar)"
+    )
+
     args = p.parse_args()
 
     tp = Path(args.tradeplan)

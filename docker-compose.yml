@@ -1,7 +1,7 @@
-version: '3.8'
-
 services:
+  # ───────────────────────────────────────────
   # 1) PostgreSQL
+  # ───────────────────────────────────────────
   liu-db:
     image: postgres:13
     container_name: liu-db
@@ -13,7 +13,9 @@ services:
     ports:
       - "5400:5432"
     volumes:
+      # persistent data
       - db_data:/var/lib/postgresql/data
+      # custom config + initial schema
       - ./database/postgres.conf:/etc/postgresql/postgresql.conf:ro
       - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     command:
@@ -21,7 +23,9 @@ services:
       - -c
       - config_file=/etc/postgresql/postgresql.conf
 
+  # ───────────────────────────────────────────
   # 2) Diagnostics UI (Streamlit)
+  # ───────────────────────────────────────────
   diagnostics-ui:
     build:
       context: .
@@ -30,15 +34,20 @@ services:
     restart: unless-stopped
     depends_on:
       - liu-db
-      - live-trader
     ports:
       - "8501:8501"
     environment:
-      DSN:                 "postgresql://liu:liu@liu-db:5432/liu"
-      REFRESH_INTERVAL_MS: "5000"
-      MAX_ROWS:            "50"
+      DSN:                  "postgresql://liu:liu@liu-db:5432/liu"
+      TRADEPLAN_DIR:        "/app/liu_samples"
+      TLOG_LEVEL:           "DEBUG"
+      REFRESH_INTERVAL_MS:  "5000"
+      MAX_ROWS:             "50"
+    volumes:
+      - ./liu_samples:/app/liu_samples:ro
 
-  # 3) Live–trades UI (Streamlit)
+  # ───────────────────────────────────────────
+  # 3) Live-Trades UI (Streamlit)
+  # ───────────────────────────────────────────
   live-trades-ui:
     build:
       context: .
@@ -51,31 +60,51 @@ services:
     ports:
       - "8502:8502"
     environment:
-      DSN:                 "postgresql://liu:liu@liu-db:5432/liu"
-      REFRESH_INTERVAL_MS: "5000"
-      MAX_ROWS:            "50"
+      DSN:                  "postgresql://liu:liu@liu-db:5432/liu"
+      TRADEPLAN_DIR:        "/app/liu_samples"
+      TLOG_LEVEL:           "DEBUG"
+      REFRESH_INTERVAL_MS:  "5000"
+      MAX_ROWS:             "50"
+    volumes:
+      - ./liu_samples:/app/liu_samples:ro
 
-  # 4) Backtest “fix-it” bot
+  # ───────────────────────────────────────────
+  # 4) Backtest runner (writes into backtests table)
+  # ───────────────────────────────────────────
+  backtest:
+    build:
+      context: .
+      dockerfile: Dockerfile.fixit
+    container_name: liu-backtest
+    depends_on:
+      - liu-db
+    volumes:
+      - ./liu_samples:/app/liu_samples:ro
+    environment:
+      DSN: "postgresql://liu:liu@liu-db:5432/liu"
+    # you’ll `docker compose run --rm backtest --tradeplan /app/liu_samples/tradeplan.toml ...`
+
+  # ───────────────────────────────────────────
+  # 5) Backtest “fix-it” bot
+  # ───────────────────────────────────────────
   fix-it-bot:
     build:
       context: .
       dockerfile: Dockerfile.fixit
     container_name: liu-fix-it
     restart: "no"
-    command:
-      - "--symbols"
-      - "AAPL,MSFT,GOOG"
-      - "--start-date"
-      - "2025-06-19"
-      - "--end-date"
-      - "2025-06-19"
-    volumes:
-      - ./liu_samples:/app/liu_samples:rw
+    # if you want defaults here you can hard-code args;
+    # otherwise pass them at runtime via `docker compose run --rm fix-it-bot ...`
+    command: []
     environment:
       DSN:        "postgresql://liu:liu@liu-db:5432/liu"
       TLOG_LEVEL: "DEBUG"
+    volumes:
+      - ./liu_samples:/app/liu_samples:rw
 
-  # 5) Live trading (paper mode)
+  # ───────────────────────────────────────────
+  # 6) Live trading (paper‐mode)
+  # ───────────────────────────────────────────
   live-trader:
     build:
       context: .
@@ -91,8 +120,8 @@ services:
       - "--log-level"
       - "INFO"
     environment:
-      APCA_API_KEY_ID:     
-      APCA_API_SECRET_KEY: 
+      APCA_API_KEY_ID:     PKKI5R2IQ2O9ACP4WUUI
+      APCA_API_SECRET_KEY: zzPeKqQRb5hmybwyOXREi0ZVtBUZRbC9eYaigasy
       APCA_API_BASE_URL:   https://paper-api.alpaca.markets/v2
       ALPACA_STREAM_URL:   wss://stream.data.alpaca.markets/v2/sip
       ALPACA_DATA_FEED:    iex
@@ -104,7 +133,9 @@ services:
     volumes:
       - ./liu_samples:/app/liu_samples:ro
 
-  # 6) Prometheus metrics
+  # ───────────────────────────────────────────
+  # 7) Prometheus metrics
+  # ───────────────────────────────────────────
   liu-prometheus:
     image: prom/prometheus:latest
     container_name: liu-prometheus
@@ -116,7 +147,9 @@ services:
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
 
-  # 7) Grafana dashboards
+  # ───────────────────────────────────────────
+  # 8) Grafana dashboards
+  # ───────────────────────────────────────────
   liu-grafana:
     image: grafana/grafana:latest
     container_name: liu-grafana

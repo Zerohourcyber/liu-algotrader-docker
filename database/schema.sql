@@ -394,3 +394,11 @@ CREATE TABLE IF NOT EXISTS keystore (
 );
 
 alter table portfolio_batch_ids drop CONSTRAINT "portfolio_batch_ids_portfolio_id_batch_id_key";
+
+CREATE TABLE IF NOT EXISTS backtests (
+    batch_id   TEXT PRIMARY KEY,
+    run_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    symbols    TEXT[]      NOT NULL,
+    win_rate   DOUBLE PRECISION NOT NULL,
+    net_profit NUMERIC     NOT NULL
+);
