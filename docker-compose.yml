@@ -1,26 +1,65 @@
 version: '3.8'
+
 services:
+  # 1) PostgreSQL
   liu-db:
     image: postgres:13
     container_name: liu-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: liu
+      POSTGRES_USER:     liu
       POSTGRES_PASSWORD: liu
-      POSTGRES_DB: liu
+      POSTGRES_DB:       liu
     ports:
       - "5400:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
       - ./database/postgres.conf:/etc/postgresql/postgresql.conf:ro
       - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
-    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+    command:
+      - postgres
+      - -c
+      - config_file=/etc/postgresql/postgresql.conf
 
+  # 2) Diagnostics UI (Streamlit)
+  diagnostics-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile.diagnostics
+    container_name: liu-streamlit-diag
+    restart: unless-stopped
+    depends_on:
+      - liu-db
+      - live-trader
+    ports:
+      - "8501:8501"
+    environment:
+      DSN:                 "postgresql://liu:liu@liu-db:5432/liu"
+      REFRESH_INTERVAL_MS: "5000"
+      MAX_ROWS:            "50"
+
+  # 3) Live–trades UI (Streamlit)
+  live-trades-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile.live_trades
+    container_name: liu-streamlit-live
+    restart: unless-stopped
+    depends_on:
+      - liu-db
+      - live-trader
+    ports:
+      - "8502:8502"
+    environment:
+      DSN:                 "postgresql://liu:liu@liu-db:5432/liu"
+      REFRESH_INTERVAL_MS: "5000"
+      MAX_ROWS:            "50"
+
+  # 4) Backtest “fix-it” bot
   fix-it-bot:
     build:
       context: .
       dockerfile: Dockerfile.fixit
-    image: liu-fixit-bot:latest
     container_name: liu-fix-it
     restart: "no"
     command:
@@ -31,59 +70,41 @@ services:
       - "--end-date"
       - "2025-06-19"
     volumes:
-      - ./liu_samples:/app/liu_samples:ro
-
-  live-trader:
-    image: liu-fixit-bot:latest
-    container_name: liu-live
-    restart: on-failure
-    entrypoint: [
-      "liu",
-      "run",
-      "live",
-      "--tradeplan",
-      "/app/liu_samples/tradeplan.toml",
-      "--log-level",
-      "INFO"
-    ]
+      - ./liu_samples:/app/liu_samples:rw
     environment:
-      APCA_API_KEY_ID: PKKI5R2IQ2O9ACP4WUUI
-      APCA_API_SECRET_KEY: zzPeKqQRb5hmybwyOXREi0ZVtBUZRbC9eYaigasy
-      APCA_API_BASE_URL: https://paper-api.alpaca.markets/v2
-      ALPACA_STREAM_URL: wss://stream.data.alpaca.markets/v2/sip
-      ALPACA_DATA_FEED: iex
-      DATA_CONNECTOR: alpaca
-      LIU_BROKER: alpaca
-      DSN: postgresql://liu:liu@liu-db:5432/liu
-      TRADEPLAN_DIR: /app/liu_samples
-      TLOG_LEVEL: DEBUG
-    volumes:
-      - ./liu_samples:/app/liu_samples:ro
+      DSN:        "postgresql://liu:liu@liu-db:5432/liu"
+      TLOG_LEVEL: "DEBUG"
 
-  streamlit-ui:
+  # 5) Live trading (paper mode)
+  live-trader:
     build:
       context: .
-      dockerfile: Dockerfile.streamlit
-    container_name: liu-streamlit
-    restart: unless-stopped
-    depends_on:
-      - liu-db
-      - live-trader
-    ports:
-      - "8501:8501"
-      - "8502:8502"
+      dockerfile: Dockerfile.fixit
+    container_name: liu-live
+    restart: on-failure
+    entrypoint:
+      - liu
+      - run
+      - live
+      - "--tradeplan"
+      - "/app/liu_samples/tradeplan.toml"
+      - "--log-level"
+      - "INFO"
+    environment:
+      APCA_API_KEY_ID:     PKKI5R2IQ2O9ACP4WUUI
+      APCA_API_SECRET_KEY: zzPeKqQRb5hmybwyOXREi0ZVtBUZRbC9eYaigasy
+      APCA_API_BASE_URL:   https://paper-api.alpaca.markets/v2
+      ALPACA_STREAM_URL:   wss://stream.data.alpaca.markets/v2/sip
+      ALPACA_DATA_FEED:    iex
+      DATA_CONNECTOR:      alpaca
+      LIU_BROKER:          alpaca
+      DSN:                 "postgresql://liu:liu@liu-db:5432/liu"
+      TRADEPLAN_DIR:       "/app/liu_samples"
+      TLOG_LEVEL:          "DEBUG"
     volumes:
       - ./liu_samples:/app/liu_samples:ro
-      - ./streamlit/app/dashboard_diagnostics.py:/app/dashboard_diagnostics.py:ro
-      - ./streamlit/app/live_trades.py:/app/live_trades.py:ro
-    command: >-
-      sh -c "streamlit run /app/dashboard_diagnostics.py --server.port 8501 &
-      streamlit run /app/live_trades.py --server.port 8502"
-    environment:
-      DSN: postgresql://liu:liu@liu-db:5432/liu
-      REFRESH_INTERVAL_MS: "5000"
-      MAX_ROWS: "50"
 
+  # 6) Prometheus metrics
   liu-prometheus:
     image: prom/prometheus:latest
     container_name: liu-prometheus
@@ -95,6 +116,7 @@ services:
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
 
+  # 7) Grafana dashboards
   liu-grafana:
     image: grafana/grafana:latest
     container_name: liu-grafana
@@ -104,7 +126,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ENABLED:  "true"
       GF_SECURITY_ADMIN_PASSWORD: "liu"
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
