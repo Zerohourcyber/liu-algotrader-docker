@@ -1,9 +1,14 @@
-# Dockerfile.fixit
+# build/Dockerfile.fixit
 FROM python:3.10-slim
 
-RUN pip install --no-cache-dir liualgotrader
+# only install the Liu CLI (and its Python deps)
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends build-essential libpq-dev \
+ && rm -rf /var/lib/apt/lists/* \
+ && pip install --no-cache-dir liualgotrader
 
 WORKDIR /app
-COPY engine-wrapper/fix_it_bot.py /app/fix_it_bot.py
 
-ENTRYPOINT ["python3", "fix_it_bot.py"]
+COPY engine-wrapper/fix_it_bot.py .
+
+ENTRYPOINT ["python3","fix_it_bot.py"]

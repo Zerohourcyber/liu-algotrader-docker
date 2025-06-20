@@ -1,0 +1,22 @@
+FROM python:3.10-slim
+
+# system deps + psycopg2
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends build-essential libpq-dev \
+ && rm -rf /var/lib/apt/lists/*
+
+# Python deps for live trades
+RUN pip install --no-cache-dir \
+      streamlit>=1.18.1 \
+      liualgotrader \
+      pandas \
+      psycopg2-binary \
+      streamlit-autorefresh \
+      altair==4.2.2 \
+      vega_datasets
+
+WORKDIR /app
+COPY streamlit/app/live_trades.py .
+
+EXPOSE 8502
+ENTRYPOINT ["streamlit","run","live_trades.py","--server.port=8502","--server.address=0.0.0.0"]

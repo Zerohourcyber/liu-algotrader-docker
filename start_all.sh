@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -e
-cd "$(dirname "$0")"
-docker-compose down --remove-orphans
-docker-compose build
-docker-compose up -d
+
+docker compose down --remove-orphans --volumes
+docker builder prune --all --force
+docker compose build --no-cache
+docker compose up -d
