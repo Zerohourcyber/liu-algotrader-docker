@@ -1,11 +1,14 @@
 # build/Dockerfile.fixit
 FROM python:3.10-slim
 
-# only install the Liu CLI (and its Python deps)
 RUN apt-get update \
- && apt-get install -y --no-install-recommends build-essential libpq-dev \
+ && apt-get install -y --no-install-recommends \
+      build-essential \
+      libpq-dev \
  && rm -rf /var/lib/apt/lists/* \
- && pip install --no-cache-dir liualgotrader
+ && pip install --no-cache-dir \
+      liualgotrader \
+      psycopg2-binary
 
 WORKDIR /app
 

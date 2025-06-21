@@ -1,22 +1,27 @@
+# build/Dockerfile.diagnostics
 FROM python:3.10-slim
 
-# system deps + psycopg2
+# 1) Install system deps + Python libs
 RUN apt-get update \
- && apt-get install -y --no-install-recommends build-essential libpq-dev \
- && rm -rf /var/lib/apt/lists/*
-
-# Python deps for diagnostics
-RUN pip install --no-cache-dir \
-      streamlit>=1.18.1 \
-      liualgotrader \
+ && apt-get install -y --no-install-recommends \
+      build-essential \
+      libpq-dev \
+ && rm -rf /var/lib/apt/lists/* \
+ && pip install --no-cache-dir \
+      streamlit \
       pandas \
       psycopg2-binary \
-      streamlit-autorefresh \
-      altair==4.2.2 \
-      vega_datasets
+      liualgotrader \
+      streamlit-autorefresh
 
+# 2) Set workdir
 WORKDIR /app
-COPY streamlit/app/dashboard_diagnostics.py .
 
-EXPOSE 8501
-ENTRYPOINT ["streamlit","run","dashboard_diagnostics.py","--server.port=8501","--server.address=0.0.0.0"]
+# 3) Copy your Streamlit app
+COPY streamlit/app/flow_tester.py ./flow_tester.py
+
+# 4) Mount in the samples folder at runtime (via docker-compose)
+#    so we don’t need to COPY it here.
+
+# 5) Default command (overridden by docker-compose if needed)
+CMD ["streamlit", "run", "flow_tester.py", "--server.port", "8501", "--server.headless", "true"]

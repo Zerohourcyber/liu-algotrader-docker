@@ -1,0 +1,5 @@
+fastapi
+uvicorn[standard]
+openai>=1.9.0       # ensure we’re using the 1.x+ SDK with the OpenAI class
+docker              # Docker SDK for Python
+python-dotenv       # optional: load env vars from .env

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AI Assistant Chat</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; }
+    #chat { max-height: 400px; overflow-y: auto; margin-bottom: 1rem; border: 1px solid #ccc; padding: 1rem; }
+    .msg { margin: 0.5rem 0; }
+    .user { font-weight: bold; }
+    input, button { padding: 0.5rem; }
+  </style>
+</head>
+<body>
+  <h2>💬 AI Assistant</h2>
+  <div id="chat"></div>
+  <input id="msg" type="text" placeholder="Ask something..." />
+  <button onclick="send()">Send</button>
+
+  <script>
+    async function send() {
+      const input = document.getElementById("msg");
+      const chat  = document.getElementById("chat");
+      const userText = input.value.trim();
+      if (!userText) return;
+
+      // show user message
+      chat.innerHTML += `<div class="msg"><span class="user">You:</span> ${userText}</div>`;
+      input.value = "";
+
+      try {
+        const res = await fetch("/run", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cmd: userText })
+        });
+        const data = await res.json();
+
+        if (res.ok && data.result !== undefined) {
+          // <-- changed from data.response to data.result
+          chat.innerHTML += `<div class="msg"><span class="user">Assistant:</span> ${data.result}</div>`;
+        } else {
+          chat.innerHTML += `<div class="msg"><span class="user">Assistant:</span> ⚠️ ${data.error || 'No response.'}</div>`;
+        }
+      } catch (err) {
+        chat.innerHTML += `<div class="msg"><span class="user">Assistant:</span> ❌ ${err.message}</div>`;
+      }
+
+      // scroll to bottom
+      chat.scrollTop = chat.scrollHeight;
+    }
+  </script>
+</body>
+</html>

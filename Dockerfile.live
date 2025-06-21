@@ -1,0 +1,12 @@
+FROM python:3.10-slim
+
+# install build tools, Postgres headers, & the Liu CLI
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends build-essential libpq-dev \
+ && rm -rf /var/lib/apt/lists/* \
+ && pip install --no-cache-dir liualgotrader
+
+WORKDIR /app
+
+# make "liu" the entrypoint so that COMMAND args get passed to it
+ENTRYPOINT ["liu"]
